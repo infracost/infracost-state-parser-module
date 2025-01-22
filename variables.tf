@@ -12,6 +12,7 @@ variable "state_files" {
 variable "log_level" {
   description = "The log level for the lambda function"
   type        = string
+  default     = "info"
 }
 
 variable "state_bucket" {
