@@ -1,6 +1,4 @@
-locals {
-  image_arn = "237144093413.dkr.ecr.us-east-2.amazonaws.com/infracost/state-parser"
-}
+
 
 resource "aws_lambda_function" "state_file_parser" {
   function_name = "infracost-state-file-parser"
@@ -13,7 +11,7 @@ resource "aws_lambda_function" "state_file_parser" {
   timeout       = 60
   memory_size   = 128
 
-  image_uri = "${local.image_arn}:${var.parser_version}"
+  image_uri = "${local.image_uri}:${var.parser_version}"
 
   environment {
     variables = {
