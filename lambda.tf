@@ -1,18 +1,19 @@
 locals {
-  image_arn = "237144093413.dkr.ecr.us-east-2.amazonaws.com/infracost/state-parser:latest"
+  image_arn = "237144093413.dkr.ecr.us-east-2.amazonaws.com/infracost/state-parser"
 }
 
 resource "aws_lambda_function" "state_file_parser" {
-  function_name = "InfracostStateFileParser"
+  function_name = "infracost-state-file-parser"
   description   = "Lambda function to parse state files to send to Infracost"
   role          = aws_iam_role.state_file_parser.arn
   handler       = "main"
   runtime       = "provided.al2"
+  package_type  = "Image"
+  architectures = ["arm64"]
   timeout       = 60
   memory_size   = 128
 
-  image_uri        = local.image_arn
-  source_code_hash = data.aws_s3_object.lambda_source.checksum_sha1
+  image_uri = "${local.image_arn}:${var.parser_version}"
 
   environment {
     variables = {
@@ -26,7 +27,7 @@ resource "aws_lambda_function" "state_file_parser" {
 
 resource "aws_cloudwatch_event_rule" "infracost_state_scrape_schedule" {
   name                = "infracost_state_scrape_schedule"
-  schedule_expression = "rate(24 hour)"
+  schedule_expression = "cron(0 * ? * * *)" // Run every hour
 }
 
 resource "aws_cloudwatch_event_target" "lambda_target" {

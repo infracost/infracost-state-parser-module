@@ -20,3 +20,9 @@ variable "state_bucket" {
   type        = string
   default     = "infracost-incoming"
 }
+
+variable "parser_version" {
+  description = "The version of the parser to use, leave as latest unless requestec to changin ti"
+  type        = string
+  default     = "latest"
+}
