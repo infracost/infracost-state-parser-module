@@ -4,8 +4,6 @@ resource "aws_lambda_function" "state_file_parser" {
   function_name = "infracost-state-file-parser"
   description   = "Lambda function to parse state files to send to Infracost"
   role          = aws_iam_role.state_file_parser.arn
-  handler       = "main"
-  runtime       = "provided.al2"
   package_type  = "Image"
   architectures = ["arm64"]
   timeout       = 60
