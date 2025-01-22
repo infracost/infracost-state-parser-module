@@ -16,10 +16,17 @@ locals {
 
 data "aws_iam_policy_document" "lambda_assume_role" {
   statement {
-    effect    = "Allow"
-    actions   = ["sts:AssumeRole"]
-    resources = ["*"]
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+    principals {
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com"]
+    }
   }
+}
+
+data "aws_iam_policy_document" "state_file_access" {
+
 
   statement {
     effect    = "Allow"
@@ -28,25 +35,22 @@ data "aws_iam_policy_document" "lambda_assume_role" {
   }
 
   statement {
-    effect    = "Allow"
-    actions   = ["ec3:GetDownloadUrlForLayer"]
-    resources = ["*"]
-  }
-
-  statement {
-    effect    = "Allow"
-    actions   = ["ecr:BatchGetImage"]
+    effect = "Allow"
+    actions = [
+      "ecr:GetDownloadUrlForLayer",
+      "ecr:GetAuthorizationToken",
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:BatchGetImage"
+    ]
     resources = [local.image_arn]
   }
 
   statement {
     effect    = "Allow"
     actions   = ["s3:PutObject"]
-    resources = [var.state_bucket]
+    resources = ["arn:aws:s3:::${var.state_bucket}/${var.organization_id}/*"]
   }
-}
 
-data "aws_iam_policy_document" "state_file_access" {
   dynamic "statement" {
     for_each = local.grouped_by_bucket
     content {
@@ -63,7 +67,6 @@ data "aws_iam_policy_document" "state_file_access" {
 }
 
 resource "aws_iam_policy" "state_file_access" {
-
   name        = "infracost-state-file-access"
   description = "Policy to allow access to state files"
   policy      = data.aws_iam_policy_document.state_file_access.json
