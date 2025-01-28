@@ -13,5 +13,5 @@ locals {
   }
 
   image_uri = "237144093413.dkr.ecr.us-east-2.amazonaws.com/infracost/state-parser"
-  image_arn = "arn:aws:ecr:us-east-2:237144093413:repository/infracost/cloudscraper"
+  image_arn = "arn:aws:ecr:us-east-2:237144093413:repository/infracost/state-parser"
 }
