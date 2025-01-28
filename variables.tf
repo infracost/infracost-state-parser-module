@@ -22,7 +22,7 @@ variable "state_bucket" {
 }
 
 variable "parser_version" {
-  description = "The version of the parser to use, leave as latest unless requestec to changin ti"
+  description = "The version of the parser to use, leave as latest unless requested to change it"
   type        = string
   default     = "latest"
 }

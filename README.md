@@ -8,7 +8,7 @@ This is a Terraform module to deploy a Lambda function that parses Infracost sta
 
 ```hcl
 module "infracost_state_parser" {
-  source = "github.com/infracost/infracost-state-parser-module?ref=v0.1.3"
+  source = "github.com/infracost/infracost-state-parser-module?ref=v0.1.4"
 
   organization_id = "your_organization_id"
 
