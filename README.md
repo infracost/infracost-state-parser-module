@@ -8,7 +8,7 @@ This is a Terraform module to deploy a Lambda function that parses Infracost sta
 
 ```hcl
 module "infracost_state_parser" {
-  source = "github.com/infracost/infracost-state-parser?ref=v0.1.0"
+  source = "github.com/infracost/infracost-state-parser-module?ref=v0.1.3"
 
   organization_id = "your_organization_id"
 
@@ -21,8 +21,8 @@ module "infracost_state_parser" {
 
 // the ARN of the Lambda function created by this module
 // give this ARN to Infracost to enable state parsing
-output "infracost_state_parser_lambda_arn" {
-  value = module.infracost_state_parser.lambda_arn
+output "infracost_state_parser_lambda_role_arn" {
+  value = module.infracost_state_parser.iam_role_arn
 }
 ```
 
