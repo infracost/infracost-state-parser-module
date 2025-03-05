@@ -1,22 +1,38 @@
-# Infracost State Parser Module
+# Infracost Statefile Parser Module
 
-## Overview
+This gives Infracost the ability to improve our algorithm that maps cloud resources to IaC code. The parser is a Lambda function that is deployed in your AWS accounts that contain your Terraform Statefiles so it can extract certain non-sensitive/non-secret attributes to send to Infracost periodically.
 
-This is a Terraform module to deploy a Lambda function that parses Infracost state files and sends the data to Infracost.
+## Prerequisites
+- You have an AWS account
+- You need your Infracost Cloud organization ID - find this in the Org Settings of [Infracost Cloud](https://dashboard.infracost.io)
+- You store your Terraform state files in S3. Please let us know if you use other state stores.
 
-## Usage
+## Usage instructions
+
+1. Use the module to create the cross account role in your AWS account
 
 ```hcl
+provider "aws" {
+  region = "us-west-2"
+}
+
 module "infracost_state_parser" {
   source = "github.com/infracost/infracost-state-parser-module?ref=v0.1.5"
+  
+  providers = {
+    aws = aws
+  }
 
   organization_id = "your_organization_id"
 
+  # TODO - do we need this or just the bucket folder? I thought we parse any statefile we find in the bucket
   state_files = [
     "s3://your_bucket/your_state_file.json",
     "s3://your_bucket/your_state_file2.json",
     "s3://your_other_bucket/your_state_file.json",
   ]
+
+  # log_level = "INFO" # Optional log level for the Lambda function. Valid values are `DEBUG`, `INFO` (default), `WARN`, or `ERROR`.
 }
 
 // the ARN of the Lambda function created by this module
@@ -26,6 +42,142 @@ output "infracost_state_parser_lambda_role_arn" {
 }
 ```
 
-### Optional Variables
+2. Run `terraform init` and `terraform apply` to create the statefile parser
 
-- `log_level` (default: `INFO`): The log level for the Lambda function. Valid values are `DEBUG`, `INFO`, `WARN`, or `ERROR`.
+3. Email the `infracost_state_parser_lambda_role_arn` outputs to Infracost:
+
+```text
+To: support@infracost.io
+Subject: Enable Statefile parser for Infracost Cloud
+
+Body:
+Hi, my name is Rafa and I'm the DevOps Lead at ACME Corporation.
+
+- Infracost Cloud org ID: $YOUR_INFRACOST_ORGANIZATION_ID
+- Our statefile parser Lambda ARNs are:
+<terraform output infracost_state_parser_lambda_role_arn>
+
+Regards,
+Rafa
+```
+
+## How will Infracost use the above access?
+
+1. This sets up a Lambda function that runs periodically using a CloudWatch Event Rule
+2. This lambda function is given access to an S3 bucket in Infracost's account.
+2. It scans your S3 bucket for Terraform statefiles and extracts the attributes listed below.
+3. It then sends these attributes to the S3 bucket in Infracost's account.
+
+For all the below:
+ * `id`
+ * `arn`
+ * `region`
+ * `tags`
+ 
+`aws_instance`:
+ * `instance_type`
+ * `availability_zone`
+ * `launch_template.id`
+ * `launch_template.name`
+ * `launch_template.version`
+ * `root_block_device.volume_id`
+ * `root_block_device.volume_type`
+ * `root_block_device.volume_size`
+ * `root_block_device.iops`
+ * `root_block_device.throughput`
+ * `ebs_block_device.device_name`
+ * `ebs_block_device.volume_id`
+ * `ebs_block_device.volume_type`
+ * `ebs_block_device.volume_size`
+ * `ebs_block_device.iops`
+ * `ebs_block_device.throughput`
+ 
+`aws_db_instance`:
+ * `instance_class`
+ * `engine`
+ * `engine_version`
+ * `multi_az`
+ * `allocated_storage`
+ * `storage_type`
+ 
+`aws_rds_cluster`:
+ * `cluster_identifier`
+ * `database_name`
+ * `engine`
+ * `engine_version`
+ * `instance_class`
+ 
+`aws_rds_cluster_instance`:
+ * `cluster_identifier`
+ * `instance_identifier`
+ * `instance_class`
+ 
+`aws_autoscaling_group`:
+ * `name`
+ * `min_size`
+ * `max_size`
+ * `desired_capacity`
+ 
+`aws_launch_template`:
+ * `name`
+ * `version`
+ * `instance_type`
+ * `image_id`
+ * `placement.availability_zone`
+ * `block_device_mappings.device_name`
+ * `block_device_mappings.ebs.volume_type`
+ * `block_device_mappings.ebs.volume_size`
+ * `block_device_mappings.ebs.iops`
+ * `block_device_mappings.ebs.throughput`
+
+`aws_launch_configuration`:
+ * `name`
+ * `image_id`
+ * `instance_type`
+ * `root_block_device.volume_type`
+ * `root_block_device.volume_size`
+ * `root_block_device.iops`
+ * `root_block_device.throughput`
+ * `ebs_block_device.device_name`
+ * `ebs_block_device.volume_id`
+ * `ebs_block_device.volume_type`
+ * `ebs_block_device.volume_size`
+ * `ebs_block_device.iops`
+ * `ebs_block_device.throughput`
+ 
+`aws_eks_cluster`:
+ * `cluster_id`
+ * `name`
+ * `version`
+
+`aws_eks_node_group`:
+ * `cluster_name`
+ * `node_group_name`
+ * `ami_type`
+ * `disk_size`
+ * `instance_types`
+ * `launch_template`
+ * `version`
+ * `resources.autoscaling_groups.*.name`
+
+`aws_ecs_cluster`:
+ * `name`
+ 
+`aws_ecs_service`:
+ * `name`
+ * `cluster`
+ * `launch_type`
+ 
+`aws_ecs_task_definition`:
+ * `family`
+ * `cpu`
+ * `memory`
+ * `required_compatibilities`
+ * `runtime_platform.operating_system_family`
+ * `runtime_platform.cpu_architecture`
+ 
+`aws_lambda_function`:
+ * `function_name`
+ * `architectures`
+ * `ephemeral_storage`
+ * `memory_size`
