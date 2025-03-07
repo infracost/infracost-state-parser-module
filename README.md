@@ -175,7 +175,7 @@ For all resources:
  * `runtime_platform.operating_system_family`
  * `runtime_platform.cpu_architecture`
 
-`aws_lambda_function`:
+For `aws_lambda_function`:
  * `function_name`
  * `architectures`
  * `ephemeral_storage`
