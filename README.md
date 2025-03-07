@@ -91,7 +91,7 @@ For `aws_instance`:
  * `ebs_block_device.iops`
  * `ebs_block_device.throughput`
 
-`aws_db_instance`:
+For `aws_db_instance`:
  * `instance_class`
  * `engine`
  * `engine_version`
