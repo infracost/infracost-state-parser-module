@@ -5,7 +5,7 @@ This gives Infracost the ability to improve our algorithm that maps cloud resour
 ## Prerequisites
 - You have an AWS account
 - You need your Infracost Cloud organization ID - find this in the Org Settings of [Infracost Cloud](https://dashboard.infracost.io)
-- You store your Terraform state files in S3. Please let us know if you use other state stores.
+- You store your Terraform state files in S3. Please email support@infracost.io if you use other state stores.
 
 ## Usage instructions
 
