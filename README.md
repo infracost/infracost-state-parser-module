@@ -144,7 +144,7 @@ For `aws_launch_configuration`:
  * `ebs_block_device.iops`
  * `ebs_block_device.throughput`
 
-`aws_eks_cluster`:
+For `aws_eks_cluster`:
  * `cluster_id`
  * `name`
  * `version`
