@@ -17,19 +17,18 @@ provider "aws" {
 }
 
 module "infracost_state_parser" {
-  source = "github.com/infracost/infracost-state-parser-module?ref=v0.1.5"
-  
+  source = "github.com/infracost/infracost-state-parser-module?ref=v0.1.6"
+
   providers = {
     aws = aws
   }
 
   organization_id = "your_organization_id"
 
-  # TODO - do we need this or just the bucket folder? I thought we parse any statefile we find in the bucket
+  # You can pass in path prefixes or full paths to state files
   state_files = [
-    "s3://your_bucket/your_state_file.json",
-    "s3://your_bucket/your_state_file2.json",
-    "s3://your_other_bucket/your_state_file.json",
+    "s3://your_bucket/statefiles/*",
+    "s3://your_other_bucket/full/path/to/statefile.json"
   ]
 
   # log_level = "INFO" # Optional log level for the Lambda function. Valid values are `DEBUG`, `INFO` (default), `WARN`, or `ERROR`.
@@ -64,16 +63,16 @@ Rafa
 ## How will Infracost use the above access?
 
 1. This sets up a Lambda function that runs periodically using a CloudWatch Event Rule
-2. This lambda function is given access to an S3 bucket in Infracost's account.
+2. This Lambda function is given access to an S3 bucket in Infracost's account.
 2. It scans your S3 bucket for Terraform statefiles and extracts the attributes listed below.
-3. It then sends these attributes to the S3 bucket in Infracost's account.
+3. It then sends a subset of the below attributes to the S3 bucket in Infracost's account:
 
 For all the below:
  * `id`
  * `arn`
  * `region`
  * `tags`
- 
+
 `aws_instance`:
  * `instance_type`
  * `availability_zone`
@@ -91,7 +90,7 @@ For all the below:
  * `ebs_block_device.volume_size`
  * `ebs_block_device.iops`
  * `ebs_block_device.throughput`
- 
+
 `aws_db_instance`:
  * `instance_class`
  * `engine`
@@ -99,25 +98,25 @@ For all the below:
  * `multi_az`
  * `allocated_storage`
  * `storage_type`
- 
+
 `aws_rds_cluster`:
  * `cluster_identifier`
  * `database_name`
  * `engine`
  * `engine_version`
  * `instance_class`
- 
+
 `aws_rds_cluster_instance`:
  * `cluster_identifier`
  * `instance_identifier`
  * `instance_class`
- 
+
 `aws_autoscaling_group`:
  * `name`
  * `min_size`
  * `max_size`
  * `desired_capacity`
- 
+
 `aws_launch_template`:
  * `name`
  * `version`
@@ -144,7 +143,7 @@ For all the below:
  * `ebs_block_device.volume_size`
  * `ebs_block_device.iops`
  * `ebs_block_device.throughput`
- 
+
 `aws_eks_cluster`:
  * `cluster_id`
  * `name`
@@ -162,12 +161,12 @@ For all the below:
 
 `aws_ecs_cluster`:
  * `name`
- 
+
 `aws_ecs_service`:
  * `name`
  * `cluster`
  * `launch_type`
- 
+
 `aws_ecs_task_definition`:
  * `family`
  * `cpu`
@@ -175,9 +174,13 @@ For all the below:
  * `required_compatibilities`
  * `runtime_platform.operating_system_family`
  * `runtime_platform.cpu_architecture`
- 
+
 `aws_lambda_function`:
  * `function_name`
  * `architectures`
  * `ephemeral_storage`
  * `memory_size`
+
+## Updates
+
+When new FinOps policies or features are added, this module may need to be updated, and the Lambda function may need to be redeployed. We will notify you when this is the case so you can update the version of the module.
