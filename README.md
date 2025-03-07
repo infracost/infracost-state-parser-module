@@ -129,7 +129,7 @@ For `aws_launch_template`:
  * `block_device_mappings.ebs.iops`
  * `block_device_mappings.ebs.throughput`
 
-`aws_launch_configuration`:
+For `aws_launch_configuration`:
  * `name`
  * `image_id`
  * `instance_type`
