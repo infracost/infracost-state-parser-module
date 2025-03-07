@@ -67,7 +67,7 @@ Rafa
 2. It scans your S3 bucket for Terraform statefiles and extracts the attributes listed below.
 3. It then sends a subset of the below attributes to the S3 bucket in Infracost's account:
 
-For all the below:
+For all resources:
  * `id`
  * `arn`
  * `region`
