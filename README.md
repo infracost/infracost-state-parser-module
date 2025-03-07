@@ -106,7 +106,7 @@ For `aws_rds_cluster`:
  * `engine_version`
  * `instance_class`
 
-`aws_rds_cluster_instance`:
+For `aws_rds_cluster_instance`:
  * `cluster_identifier`
  * `instance_identifier`
  * `instance_class`
