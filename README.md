@@ -167,7 +167,7 @@ For `aws_eks_cluster`:
  * `cluster`
  * `launch_type`
 
-`aws_ecs_task_definition`:
+For `aws_ecs_task_definition`:
  * `family`
  * `cpu`
  * `memory`
