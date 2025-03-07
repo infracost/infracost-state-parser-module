@@ -117,7 +117,7 @@ For `aws_autoscaling_group`:
  * `max_size`
  * `desired_capacity`
 
-`aws_launch_template`:
+For `aws_launch_template`:
  * `name`
  * `version`
  * `instance_type`
