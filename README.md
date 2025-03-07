@@ -99,7 +99,7 @@ For `aws_instance`:
  * `allocated_storage`
  * `storage_type`
 
-`aws_rds_cluster`:
+For `aws_rds_cluster`:
  * `cluster_identifier`
  * `database_name`
  * `engine`
