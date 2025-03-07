@@ -162,7 +162,7 @@ For `aws_eks_cluster`:
 `aws_ecs_cluster`:
  * `name`
 
-`aws_ecs_service`:
+For `aws_ecs_service`:
  * `name`
  * `cluster`
  * `launch_type`
