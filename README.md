@@ -149,7 +149,7 @@ For `aws_eks_cluster`:
  * `name`
  * `version`
 
-`aws_eks_node_group`:
+For `aws_eks_node_group`:
  * `cluster_name`
  * `node_group_name`
  * `ami_type`
