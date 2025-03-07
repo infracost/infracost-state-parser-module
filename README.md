@@ -159,7 +159,7 @@ For `aws_eks_cluster`:
  * `version`
  * `resources.autoscaling_groups.*.name`
 
-`aws_ecs_cluster`:
+For `aws_ecs_cluster`:
  * `name`
 
 For `aws_ecs_service`:
