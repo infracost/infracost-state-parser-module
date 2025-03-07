@@ -111,7 +111,7 @@ For `aws_rds_cluster_instance`:
  * `instance_identifier`
  * `instance_class`
 
-`aws_autoscaling_group`:
+For `aws_autoscaling_group`:
  * `name`
  * `min_size`
  * `max_size`
