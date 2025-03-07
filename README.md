@@ -73,7 +73,7 @@ For all resources:
  * `region`
  * `tags`
 
-`aws_instance`:
+For `aws_instance`:
  * `instance_type`
  * `availability_zone`
  * `launch_template.id`
