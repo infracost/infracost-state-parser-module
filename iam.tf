@@ -30,6 +30,14 @@ data "aws_iam_policy_document" "state_file_access" {
   }
 
   statement {
+    effect = "Allow"
+    actions = [
+      "ecr:GetAuthorizationToken"
+    ]
+    resources = ["*"]
+  }
+
+  statement {
     effect    = "Allow"
     actions   = ["s3:PutObject"]
     resources = ["arn:aws:s3:::${var.state_bucket}/${var.organization_id}/*"]
