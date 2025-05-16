@@ -17,7 +17,7 @@ provider "aws" {
 }
 
 module "infracost_state_parser" {
-  source = "github.com/infracost/infracost-state-parser-module?ref=v0.1.6"
+  source = "github.com/infracost/infracost-state-parser-module?ref=v0.1.7"
 
   providers = {
     aws = aws
