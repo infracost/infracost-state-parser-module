@@ -1,5 +1,3 @@
-
-
 resource "aws_lambda_function" "state_file_parser" {
   function_name = "infracost-state-file-parser"
   description   = "Lambda function to parse state files to send to Infracost"
@@ -30,4 +28,12 @@ resource "aws_cloudwatch_event_target" "lambda_target" {
   rule      = aws_cloudwatch_event_rule.infracost_state_scrape_schedule.name
   target_id = "lambda"
   arn       = aws_lambda_function.state_file_parser.arn
+}
+
+resource "aws_lambda_permission" "allow_cloudwatch" {
+  statement_id  = "AllowExecutionFromCloudWatch"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.state_file_parser.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.infracost_state_scrape_schedule.arn
 }
