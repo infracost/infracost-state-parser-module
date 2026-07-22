@@ -18,11 +18,6 @@ override_data {
   values = { account_id = "123456789012" }
 }
 
-override_data {
-  target = data.aws_partition.current
-  values = { partition = "aws" }
-}
-
 variables {
   organization_id = "3f9fa4c5-e856-4312-8423-3c8380f3f05e"
   state_files     = ["s3://customer-tfstate/env/prod/*.tfstate"]
@@ -154,19 +149,14 @@ run "parser_period_boundaries_are_accepted" {
   }
 }
 
-run "exact_key_listing_is_scoped" {
+run "exact_key_does_not_require_listing" {
   command = plan
 
   variables { state_files = ["s3://customer-tfstate/env/prod/main.tfstate"] }
 
   assert {
-    condition     = strcontains(data.aws_iam_policy_document.state_file_access.json, "s3:ListBucket") && strcontains(data.aws_iam_policy_document.state_file_access.json, "env/prod/main.tfstate")
-    error_message = "An exact object needs exact-key ListBucket access so missing and denied objects can be distinguished."
-  }
-
-  assert {
-    condition     = !strcontains(data.aws_iam_policy_document.state_file_access.json, "env/prod/*")
-    error_message = "An exact key must not broaden listing to sibling objects."
+    condition     = !strcontains(data.aws_iam_policy_document.state_file_access.json, "s3:ListBucket")
+    error_message = "An exact object is read directly and must not receive unnecessary ListBucket access."
   }
 }
 

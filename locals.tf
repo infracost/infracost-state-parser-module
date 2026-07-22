@@ -1,6 +1,5 @@
 data "aws_region" "current" {}
 data "aws_caller_identity" "current" {}
-data "aws_partition" "current" {}
 
 locals {
   parsed_state_files = [
@@ -17,9 +16,10 @@ locals {
   exact_bucket_sources    = [for source in local.parsed_state_files : source if !source.bucket_has_wildcard]
   wildcard_bucket_sources = [for source in local.parsed_state_files : source if source.bucket_has_wildcard]
   exact_buckets           = toset([for source in local.exact_bucket_sources : source.bucket])
+  wildcard_key_sources    = [for source in local.exact_bucket_sources : source if source.key_has_wildcard]
   list_buckets = {
-    for bucket in local.exact_buckets : bucket => [
-      for source in local.exact_bucket_sources : source if source.bucket == bucket
+    for bucket in toset([for source in local.wildcard_key_sources : source.bucket]) : bucket => [
+      for source in local.wildcard_key_sources : source if source.bucket == bucket
     ]
   }
 
@@ -33,8 +33,6 @@ locals {
   expected_interval_seconds = (local.period_days * 86400) + (local.period_hours * 3600) + (local.period_minutes * 60)
 
   function_name  = "infracost-state-file-parser"
-  role_name      = "infracost-state-parser-role"
-  policy_name    = "infracost-state-file-access"
   image_uri      = "237144093413.dkr.ecr.${data.aws_region.current.region}.amazonaws.com/infracost/state-parser"
   parser_version = "0.2.0"
   image_ref      = "${local.image_uri}:${local.parser_version}"

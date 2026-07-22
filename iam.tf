@@ -14,14 +14,14 @@ data "aws_iam_policy_document" "state_file_access" {
     sid       = "WriteLogs"
     effect    = "Allow"
     actions   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
-    resources = ["arn:${data.aws_partition.current.partition}:logs:*:*:*"]
+    resources = ["arn:aws:logs:*:*:*"]
   }
 
   statement {
     sid       = "WriteSanitizedReports"
     effect    = "Allow"
     actions   = ["s3:PutObject"]
-    resources = ["arn:${data.aws_partition.current.partition}:s3:::${var.state_bucket}/${var.organization_id}/aws_account_id=${data.aws_caller_identity.current.account_id}/terraform-state-resources.json"]
+    resources = ["arn:aws:s3:::${var.state_bucket}/${var.organization_id}/aws_account_id=${data.aws_caller_identity.current.account_id}/terraform-state-resources.json"]
   }
 
   dynamic "statement" {
@@ -30,7 +30,7 @@ data "aws_iam_policy_document" "state_file_access" {
       sid       = "LocateBucket${substr(sha1(statement.value), 0, 12)}"
       effect    = "Allow"
       actions   = ["s3:GetBucketLocation"]
-      resources = ["arn:${data.aws_partition.current.partition}:s3:::${statement.value}"]
+      resources = ["arn:aws:s3:::${statement.value}"]
     }
   }
 
@@ -40,14 +40,12 @@ data "aws_iam_policy_document" "state_file_access" {
       sid       = "ListBucket${substr(sha1(statement.key), 0, 12)}"
       effect    = "Allow"
       actions   = ["s3:ListBucket"]
-      resources = ["arn:${data.aws_partition.current.partition}:s3:::${statement.key}"]
+      resources = ["arn:aws:s3:::${statement.key}"]
 
       condition {
         test     = "StringLike"
         variable = "s3:prefix"
-        values = distinct([
-          for source in statement.value : source.key_has_wildcard ? "${source.literal_key_prefix}*" : source.key_pattern
-        ])
+        values   = distinct([for source in statement.value : "${source.literal_key_prefix}*"])
       }
     }
   }
@@ -57,7 +55,7 @@ data "aws_iam_policy_document" "state_file_access" {
     effect  = "Allow"
     actions = ["s3:GetObject"]
     resources = [
-      for source in local.parsed_state_files : "arn:${data.aws_partition.current.partition}:s3:::${source.bucket}/${source.key_pattern}"
+      for source in local.parsed_state_files : "arn:aws:s3:::${source.bucket}/${source.key_pattern}"
     ]
   }
 
@@ -78,7 +76,7 @@ data "aws_iam_policy_document" "state_file_access" {
       effect  = "Allow"
       actions = ["s3:GetBucketLocation"]
       resources = distinct([
-        for source in local.wildcard_bucket_sources : "arn:${data.aws_partition.current.partition}:s3:::${source.bucket}"
+        for source in local.wildcard_bucket_sources : "arn:aws:s3:::${source.bucket}"
       ])
     }
   }
@@ -91,7 +89,7 @@ data "aws_iam_policy_document" "state_file_access" {
       sid       = "ListMatchingBuckets${substr(statement.key, 0, 12)}"
       effect    = "Allow"
       actions   = ["s3:ListBucket"]
-      resources = ["arn:${data.aws_partition.current.partition}:s3:::${statement.value.bucket}"]
+      resources = ["arn:aws:s3:::${statement.value.bucket}"]
 
       condition {
         test     = "StringLike"
@@ -114,13 +112,13 @@ data "aws_iam_policy_document" "state_file_access" {
 }
 
 resource "aws_iam_policy" "state_file_access" {
-  name        = local.policy_name
+  name        = "infracost-state-file-access"
   description = "Policy to allow access to state files"
   policy      = data.aws_iam_policy_document.state_file_access.json
 }
 
 resource "aws_iam_role" "state_file_parser" {
-  name               = local.role_name
+  name               = "infracost-state-parser-role"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
 }
 
@@ -130,6 +128,5 @@ resource "aws_iam_role_policy_attachment" "state_file_access_policy_attachement"
 }
 
 output "iam_role_arn" {
-  description = "Lambda execution role ARN (not an assumable Infracost role)"
-  value       = aws_iam_role.state_file_parser.arn
+  value = aws_iam_role.state_file_parser.arn
 }
