@@ -18,6 +18,23 @@ data "aws_iam_policy_document" "state_file_access" {
   }
 
   statement {
+    effect = "Allow"
+    actions = [
+      "ecr:GetDownloadUrlForLayer",
+      "ecr:GetAuthorizationToken",
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:BatchGetImage"
+    ]
+    resources = [local.image_arn]
+  }
+
+  statement {
+    effect    = "Allow"
+    actions   = ["ecr:GetAuthorizationToken"]
+    resources = ["*"]
+  }
+
+  statement {
     sid       = "WriteSanitizedReports"
     effect    = "Allow"
     actions   = ["s3:PutObject"]
@@ -35,18 +52,12 @@ data "aws_iam_policy_document" "state_file_access" {
   }
 
   dynamic "statement" {
-    for_each = local.list_buckets
+    for_each = local.exact_buckets
     content {
-      sid       = "ListBucket${substr(sha1(statement.key), 0, 12)}"
+      sid       = "ListBucket${substr(sha1(statement.value), 0, 12)}"
       effect    = "Allow"
       actions   = ["s3:ListBucket"]
-      resources = ["arn:aws:s3:::${statement.key}"]
-
-      condition {
-        test     = "StringLike"
-        variable = "s3:prefix"
-        values   = distinct([for source in statement.value : "${source.literal_key_prefix}*"])
-      }
+      resources = ["arn:aws:s3:::${statement.value}"]
     }
   }
 

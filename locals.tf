@@ -16,12 +16,6 @@ locals {
   exact_bucket_sources    = [for source in local.parsed_state_files : source if !source.bucket_has_wildcard]
   wildcard_bucket_sources = [for source in local.parsed_state_files : source if source.bucket_has_wildcard]
   exact_buckets           = toset([for source in local.exact_bucket_sources : source.bucket])
-  wildcard_key_sources    = [for source in local.exact_bucket_sources : source if source.key_has_wildcard]
-  list_buckets = {
-    for bucket in toset([for source in local.wildcard_key_sources : source.bucket]) : bucket => [
-      for source in local.wildcard_key_sources : source if source.bucket == bucket
-    ]
-  }
 
   period_days    = try(tonumber(regex("^P([1-9][0-9]*)D$", var.schedule_period)[0]), 0)
   period_hours   = try(tonumber(regex("^PT([1-9][0-9]*)H$", var.schedule_period)[0]), 0)
@@ -34,6 +28,7 @@ locals {
 
   function_name  = "infracost-state-file-parser"
   image_uri      = "237144093413.dkr.ecr.${data.aws_region.current.region}.amazonaws.com/infracost/state-parser"
+  image_arn      = "arn:aws:ecr:${data.aws_region.current.region}:237144093413:repository/infracost/state-parser"
   parser_version = "0.2.0"
   image_ref      = "${local.image_uri}:${local.parser_version}"
 

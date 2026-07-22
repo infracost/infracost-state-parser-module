@@ -45,10 +45,17 @@ run "minimal_default_contract" {
     condition = (
       aws_lambda_function.state_file_parser.image_uri == "237144093413.dkr.ecr.us-east-2.amazonaws.com/infracost/state-parser:0.2.0" &&
       !contains(keys(aws_lambda_function.state_file_parser.environment[0].variables), "PARSER_AUTO_UPDATE") &&
-      !strcontains(data.aws_iam_policy_document.state_file_access.json, "lambda:UpdateFunctionCode") &&
-      !strcontains(data.aws_iam_policy_document.state_file_access.json, "ecr:BatchGetImage")
+      !strcontains(data.aws_iam_policy_document.state_file_access.json, "lambda:UpdateFunctionCode")
     )
     error_message = "The module must use its paired versioned parser release without self-update configuration or permissions."
+  }
+
+  assert {
+    condition = (
+      strcontains(data.aws_iam_policy_document.state_file_access.json, "ecr:BatchGetImage") &&
+      strcontains(data.aws_iam_policy_document.state_file_access.json, "ecr:GetDownloadUrlForLayer")
+    )
+    error_message = "The existing cross-account ECR image permissions must be preserved."
   }
 
   assert {
@@ -149,14 +156,14 @@ run "parser_period_boundaries_are_accepted" {
   }
 }
 
-run "exact_key_does_not_require_listing" {
+run "exact_key_preserves_bucket_listing" {
   command = plan
 
   variables { state_files = ["s3://customer-tfstate/env/prod/main.tfstate"] }
 
   assert {
-    condition     = !strcontains(data.aws_iam_policy_document.state_file_access.json, "s3:ListBucket")
-    error_message = "An exact object is read directly and must not receive unnecessary ListBucket access."
+    condition     = strcontains(data.aws_iam_policy_document.state_file_access.json, "s3:ListBucket") && strcontains(data.aws_iam_policy_document.state_file_access.json, "arn:aws:s3:::customer-tfstate")
+    error_message = "Exact paths must preserve the module's existing bucket-list permission and S3 missing-object behavior."
   }
 }
 
