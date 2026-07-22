@@ -31,6 +31,7 @@ module "infracost_state_parser" {
     "s3://your_other_bucket/full/path/to/statefile.json"
   ]
 
+  # state_kms_key_arns = ["arn:aws:kms:us-west-2:123456789012:key/your-key-id"] # Optional KMS keys used to encrypt the state files.
   # log_level = "INFO" # Optional log level for the Lambda function. Valid values are `DEBUG`, `INFO` (default), `WARN`, or `ERROR`.
 }
 
