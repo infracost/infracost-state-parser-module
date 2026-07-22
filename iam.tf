@@ -1,5 +1,3 @@
-
-
 data "aws_iam_policy_document" "lambda_assume_role" {
   statement {
     effect  = "Allow"
@@ -13,6 +11,7 @@ data "aws_iam_policy_document" "lambda_assume_role" {
 
 data "aws_iam_policy_document" "state_file_access" {
   statement {
+    sid       = "WriteLogs"
     effect    = "Allow"
     actions   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
     resources = ["arn:aws:logs:*:*:*"]
@@ -30,32 +29,97 @@ data "aws_iam_policy_document" "state_file_access" {
   }
 
   statement {
-    effect = "Allow"
-    actions = [
-      "ecr:GetAuthorizationToken"
-    ]
+    effect    = "Allow"
+    actions   = ["ecr:GetAuthorizationToken"]
     resources = ["*"]
   }
 
   statement {
+    sid       = "WriteSanitizedReports"
     effect    = "Allow"
     actions   = ["s3:PutObject"]
-    resources = ["arn:aws:s3:::${var.state_bucket}/${var.organization_id}/*"]
+    resources = ["arn:aws:s3:::${var.state_bucket}/${var.organization_id}/aws_account_id=${data.aws_caller_identity.current.account_id}/terraform-state-resources.json"]
   }
 
   dynamic "statement" {
-    for_each = local.grouped_by_bucket
+    for_each = local.exact_buckets
     content {
-      actions = [
-        "s3:GetObject",
-        "s3:ListBucket",
-      ]
-      resources = concat(
-        ["arn:aws:s3:::${statement.key}"],
-        [for prefix in statement.value[0] : "arn:aws:s3:::${statement.key}/${prefix}"]
-      )
+      sid       = "LocateBucket${substr(sha1(statement.value), 0, 12)}"
+      effect    = "Allow"
+      actions   = ["s3:GetBucketLocation"]
+      resources = ["arn:aws:s3:::${statement.value}"]
     }
   }
+
+  dynamic "statement" {
+    for_each = local.exact_buckets
+    content {
+      sid       = "ListBucket${substr(sha1(statement.value), 0, 12)}"
+      effect    = "Allow"
+      actions   = ["s3:ListBucket"]
+      resources = ["arn:aws:s3:::${statement.value}"]
+    }
+  }
+
+  statement {
+    sid     = "ReadConfiguredStateObjects"
+    effect  = "Allow"
+    actions = ["s3:GetObject"]
+    resources = [
+      for source in local.parsed_state_files : "arn:aws:s3:::${source.bucket}/${source.key_pattern}"
+    ]
+  }
+
+  dynamic "statement" {
+    for_each = length(local.wildcard_bucket_sources) > 0 ? [1] : []
+    content {
+      sid       = "DiscoverMatchingBuckets"
+      effect    = "Allow"
+      actions   = ["s3:ListAllMyBuckets"]
+      resources = ["*"]
+    }
+  }
+
+  dynamic "statement" {
+    for_each = length(local.wildcard_bucket_sources) > 0 ? [1] : []
+    content {
+      sid     = "InspectMatchingBucketRegions"
+      effect  = "Allow"
+      actions = ["s3:GetBucketLocation"]
+      resources = distinct([
+        for source in local.wildcard_bucket_sources : "arn:aws:s3:::${source.bucket}"
+      ])
+    }
+  }
+
+  dynamic "statement" {
+    for_each = {
+      for source in local.wildcard_bucket_sources : sha1(source.url) => source
+    }
+    content {
+      sid       = "ListMatchingBuckets${substr(statement.key, 0, 12)}"
+      effect    = "Allow"
+      actions   = ["s3:ListBucket"]
+      resources = ["arn:aws:s3:::${statement.value.bucket}"]
+
+      condition {
+        test     = "StringLike"
+        variable = "s3:prefix"
+        values   = ["${statement.value.literal_key_prefix}*"]
+      }
+    }
+  }
+
+  dynamic "statement" {
+    for_each = length(var.state_kms_key_arns) > 0 ? [1] : []
+    content {
+      sid       = "DecryptConfiguredStateKeys"
+      effect    = "Allow"
+      actions   = ["kms:Decrypt"]
+      resources = sort(tolist(var.state_kms_key_arns))
+    }
+  }
+
 }
 
 resource "aws_iam_policy" "state_file_access" {
