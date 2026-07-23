@@ -9,7 +9,7 @@ variable "organization_id" {
 }
 
 variable "state_files" {
-  description = "S3 object paths or glob patterns containing Terraform state. When empty, the parser discovers buckets whose names reference Terraform/IaC state and scans them for *.tfstate objects."
+  description = "S3 object paths or glob patterns containing Terraform state. When empty, the parser discovers buckets whose names reference Terraform/Terragrunt/IaC state and scans them for *.tfstate and *.json objects."
   type        = list(string)
   default     = []
   nullable    = false

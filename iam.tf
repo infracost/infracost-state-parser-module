@@ -96,10 +96,12 @@ data "aws_iam_policy_document" "state_file_access" {
   dynamic "statement" {
     for_each = local.default_discovery ? [1] : []
     content {
-      sid       = "DefaultDiscoveryReadStateObjects"
-      effect    = "Allow"
-      actions   = ["s3:GetObject"]
-      resources = [for arn in local.default_discovery_bucket_arns : "${arn}/*.tfstate"]
+      sid     = "DefaultDiscoveryReadStateObjects"
+      effect  = "Allow"
+      actions = ["s3:GetObject"]
+      resources = flatten([
+        for arn in local.default_discovery_bucket_arns : ["${arn}/*.tfstate", "${arn}/*.json"]
+      ])
     }
   }
 

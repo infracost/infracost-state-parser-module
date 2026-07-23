@@ -3,13 +3,13 @@
 This gives Infracost the ability to improve our algorithm that maps cloud resources to IaC code. The parser is a Lambda function that is deployed in your AWS accounts that contain your Terraform Statefiles so it can extract certain non-sensitive/non-secret attributes to send to Infracost periodically.
 
 ## Prerequisites
-- You have an AWS account
-- You need your Infracost Cloud organization ID - find this in the Org Settings of [Infracost Cloud](https://dashboard.infracost.io)
+- You have an AWS account.
+- You need your Infracost Cloud organization ID - find this in the Org Settings of [Infracost Cloud](https://dashboard.infracost.io).
 - You store your Terraform state files in S3. Please email support@infracost.io if you use other state stores.
 
 ## Usage instructions
 
-1. Use the module to create the parser Lambda in your AWS account
+1. Use the module to create the parser Lambda in your AWS account:
 
 ```hcl
 provider "aws" {
@@ -17,7 +17,7 @@ provider "aws" {
 }
 
 module "infracost_state_parser" {
-  source = "github.com/infracost/infracost-state-parser-module?ref=v0.4.0"
+  source = "github.com/infracost/infracost-state-parser-module?ref=v0.2.1"
 
   providers = {
     aws = aws
@@ -28,7 +28,8 @@ module "infracost_state_parser" {
   # Optional: explicit path prefixes or full paths to state files. If omitted,
   # the parser finds S3 buckets whose names reference Terraform, Terragrunt or
   # IaC state (e.g. tfstate, terraform-state, acme-prod-statefiles,
-  # terragrunt-123456789012-us-east-1) and scans them for *.tfstate objects.
+  # terragrunt-123456789012-us-east-1) and scans them for *.tfstate and
+  # *.json objects.
   # state_files = [
   #   "s3://your_bucket/statefiles/*",
   #   "s3://your_other_bucket/full/path/to/statefile.json"
@@ -40,11 +41,26 @@ module "infracost_state_parser" {
 }
 ```
 
-2. Run `terraform init` and `terraform apply` to create the statefile parser. No further setup is needed - the parser sends its reports to Infracost automatically.
+2. Run `terraform init` and `terraform apply` to create the statefile parser.
+
+3. Email support@infracost.io so we can enable state parsing for your organization:
+
+```text
+To: support@infracost.io
+Subject: Enable Statefile parser for Infracost Cloud
+
+Body:
+Hi, my name is Rafa and I'm the DevOps Lead at ACME Corporation.
+
+- Infracost Cloud org ID: $YOUR_INFRACOST_ORGANIZATION_ID
+
+Regards,
+Rafa
+```
 
 ## How will Infracost use the above access?
 
-1. This sets up a Lambda function that runs periodically using a CloudWatch Event Rule
+1. This sets up a Lambda function that runs periodically using a CloudWatch Event Rule.
 2. It scans your configured state files (or discovered state buckets) and extracts the attributes listed below.
 3. It then sends a subset of the below attributes to an S3 bucket in Infracost's account:
 

@@ -43,7 +43,7 @@ run "minimal_default_contract" {
 
   assert {
     condition = (
-      aws_lambda_function.state_file_parser.image_uri == "237144093413.dkr.ecr.us-east-2.amazonaws.com/infracost/state-parser:0.4.0" &&
+      aws_lambda_function.state_file_parser.image_uri == "237144093413.dkr.ecr.us-east-2.amazonaws.com/infracost/state-parser:0.2.1" &&
       !contains(keys(aws_lambda_function.state_file_parser.environment[0].variables), "PARSER_AUTO_UPDATE") &&
       !strcontains(data.aws_iam_policy_document.state_file_access.json, "lambda:UpdateFunctionCode")
     )
@@ -128,9 +128,9 @@ run "omitted_state_files_enable_default_discovery" {
       for statement in jsondecode(data.aws_iam_policy_document.state_file_access.json).Statement : statement
       if try(statement.Sid == "DefaultDiscoveryReadStateObjects", false) &&
       try(statement.Action == "s3:GetObject", false) &&
-      alltrue([for resource in try(tolist(statement.Resource), [statement.Resource]) : endswith(resource, "/*.tfstate")])
+      alltrue([for resource in try(tolist(statement.Resource), [statement.Resource]) : endswith(resource, "/*.tfstate") || endswith(resource, "/*.json")])
     ]) == 1
-    error_message = "Default discovery reads must be bounded to *.tfstate objects in state-named buckets."
+    error_message = "Default discovery reads must be bounded to *.tfstate and *.json objects in state-named buckets."
   }
 
   assert {
