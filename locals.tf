@@ -18,16 +18,13 @@ locals {
   exact_buckets           = toset([for source in local.exact_bucket_sources : source.bucket])
 
   default_discovery = length(var.state_files) == 0
-  # Coarse IAM bound for default discovery: bucket names combining a
-  # Terraform/IaC token and "state" in either order. The parser applies the
-  # stricter name rule; IAM only needs to contain it.
+  # Coarse IAM bound for default discovery: every bucket name the parser's
+  # discovery rule can match contains "terraform", "terragrunt", or "state".
+  # The parser applies the stricter name rule; IAM only needs to contain it.
   default_discovery_bucket_arns = [
-    "arn:aws:s3:::*terraform*state*",
-    "arn:aws:s3:::*state*terraform*",
-    "arn:aws:s3:::*tf*state*",
-    "arn:aws:s3:::*state*tf*",
-    "arn:aws:s3:::*iac*state*",
-    "arn:aws:s3:::*state*iac*",
+    "arn:aws:s3:::*terraform*",
+    "arn:aws:s3:::*terragrunt*",
+    "arn:aws:s3:::*state*",
   ]
 
   period_days    = try(tonumber(regex("^P([1-9][0-9]*)D$", var.schedule_period)[0]), 0)

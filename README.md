@@ -26,9 +26,9 @@ module "infracost_state_parser" {
   organization_id = "your_organization_id"
 
   # Optional: explicit path prefixes or full paths to state files. If omitted,
-  # the parser finds S3 buckets whose names reference Terraform/IaC state
-  # (e.g. tfstate, terraform-state, prod-tf-state-us-east-1) and scans them
-  # for *.tfstate objects.
+  # the parser finds S3 buckets whose names reference Terraform, Terragrunt or
+  # IaC state (e.g. tfstate, terraform-state, acme-prod-statefiles,
+  # terragrunt-123456789012-us-east-1) and scans them for *.tfstate objects.
   # state_files = [
   #   "s3://your_bucket/statefiles/*",
   #   "s3://your_other_bucket/full/path/to/statefile.json"
