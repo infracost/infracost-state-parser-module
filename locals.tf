@@ -17,6 +17,19 @@ locals {
   wildcard_bucket_sources = [for source in local.parsed_state_files : source if source.bucket_has_wildcard]
   exact_buckets           = toset([for source in local.exact_bucket_sources : source.bucket])
 
+  default_discovery = length(var.state_files) == 0
+  # Coarse IAM bound for default discovery: bucket names combining a
+  # Terraform/IaC token and "state" in either order. The parser applies the
+  # stricter name rule; IAM only needs to contain it.
+  default_discovery_bucket_arns = [
+    "arn:aws:s3:::*terraform*state*",
+    "arn:aws:s3:::*state*terraform*",
+    "arn:aws:s3:::*tf*state*",
+    "arn:aws:s3:::*state*tf*",
+    "arn:aws:s3:::*iac*state*",
+    "arn:aws:s3:::*state*iac*",
+  ]
+
   period_days    = try(tonumber(regex("^P([1-9][0-9]*)D$", var.schedule_period)[0]), 0)
   period_hours   = try(tonumber(regex("^PT([1-9][0-9]*)H$", var.schedule_period)[0]), 0)
   period_minutes = try(tonumber(regex("^PT([1-9][0-9]*)M$", var.schedule_period)[0]), 0)
@@ -29,7 +42,7 @@ locals {
   function_name  = "infracost-state-file-parser"
   image_uri      = "237144093413.dkr.ecr.${data.aws_region.current.region}.amazonaws.com/infracost/state-parser"
   image_arn      = "arn:aws:ecr:${data.aws_region.current.region}:237144093413:repository/infracost/state-parser"
-  parser_version = "0.2.0"
+  parser_version = "0.4.0"
   image_ref      = "${local.image_uri}:${local.parser_version}"
 
   supported_image_regions = toset([

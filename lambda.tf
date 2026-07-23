@@ -17,6 +17,7 @@ resource "aws_lambda_function" "state_file_parser" {
     variables = {
       ORGANIZATION_ID               = var.organization_id
       STATE_FILE_PATTERNS_JSON      = jsonencode(var.state_files)
+      DEFAULT_BUCKET_DISCOVERY      = local.default_discovery ? "true" : "false"
       INFRACOST_STATE_BUCKET        = var.state_bucket
       INFRACOST_STATE_BUCKET_REGION = "us-east-2"
       LOG_LEVEL                     = lower(var.log_level)

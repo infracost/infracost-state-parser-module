@@ -9,11 +9,12 @@ variable "organization_id" {
 }
 
 variable "state_files" {
-  description = "S3 object paths or glob patterns containing Terraform state"
+  description = "S3 object paths or glob patterns containing Terraform state. When empty, the parser discovers buckets whose names reference Terraform/IaC state and scans them for *.tfstate objects."
   type        = list(string)
+  default     = []
 
   validation {
-    condition = length(var.state_files) > 0 && alltrue([
+    condition = alltrue([
       for source in var.state_files : can(regex("^s3://[^/]+/.+$", source))
     ])
     error_message = "state_files must contain valid s3://bucket/key paths."

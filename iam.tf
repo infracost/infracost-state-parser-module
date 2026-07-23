@@ -61,22 +61,45 @@ data "aws_iam_policy_document" "state_file_access" {
     }
   }
 
-  statement {
-    sid     = "ReadConfiguredStateObjects"
-    effect  = "Allow"
-    actions = ["s3:GetObject"]
-    resources = [
-      for source in local.parsed_state_files : "arn:aws:s3:::${source.bucket}/${source.key_pattern}"
-    ]
+  dynamic "statement" {
+    for_each = length(local.parsed_state_files) > 0 ? [1] : []
+    content {
+      sid     = "ReadConfiguredStateObjects"
+      effect  = "Allow"
+      actions = ["s3:GetObject"]
+      resources = [
+        for source in local.parsed_state_files : "arn:aws:s3:::${source.bucket}/${source.key_pattern}"
+      ]
+    }
   }
 
   dynamic "statement" {
-    for_each = length(local.wildcard_bucket_sources) > 0 ? [1] : []
+    for_each = length(local.wildcard_bucket_sources) > 0 || local.default_discovery ? [1] : []
     content {
       sid       = "DiscoverMatchingBuckets"
       effect    = "Allow"
       actions   = ["s3:ListAllMyBuckets"]
       resources = ["*"]
+    }
+  }
+
+  dynamic "statement" {
+    for_each = local.default_discovery ? [1] : []
+    content {
+      sid       = "DefaultDiscoveryInspectBuckets"
+      effect    = "Allow"
+      actions   = ["s3:GetBucketLocation", "s3:ListBucket"]
+      resources = local.default_discovery_bucket_arns
+    }
+  }
+
+  dynamic "statement" {
+    for_each = local.default_discovery ? [1] : []
+    content {
+      sid       = "DefaultDiscoveryReadStateObjects"
+      effect    = "Allow"
+      actions   = ["s3:GetObject"]
+      resources = [for arn in local.default_discovery_bucket_arns : "${arn}/*.tfstate"]
     }
   }
 
