@@ -37,9 +37,9 @@ locals {
   expected_interval_seconds = (local.period_days * 86400) + (local.period_hours * 3600) + (local.period_minutes * 60)
 
   function_name  = "infracost-state-file-parser"
-  image_uri      = "237144093413.dkr.ecr.${data.aws_region.current.region}.amazonaws.com/infracost/state-parser"
-  image_arn      = "arn:aws:ecr:${data.aws_region.current.region}:237144093413:repository/infracost/state-parser"
-  parser_version = "0.2.1"
+  image_uri      = "237144093413.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/infracost/state-parser"
+  image_arn      = "arn:aws:ecr:${data.aws_region.current.name}:237144093413:repository/infracost/state-parser"
+  parser_version = "0.2.2"
   image_ref      = "${local.image_uri}:${local.parser_version}"
 
   supported_image_regions = toset([

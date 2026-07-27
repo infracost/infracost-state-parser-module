@@ -10,7 +10,7 @@ provider "aws" {
 
 override_data {
   target = data.aws_region.current
-  values = { region = "us-east-2" }
+  values = { name = "us-east-2" }
 }
 
 override_data {
@@ -43,7 +43,7 @@ run "minimal_default_contract" {
 
   assert {
     condition = (
-      aws_lambda_function.state_file_parser.image_uri == "237144093413.dkr.ecr.us-east-2.amazonaws.com/infracost/state-parser:0.2.1" &&
+      aws_lambda_function.state_file_parser.image_uri == "237144093413.dkr.ecr.us-east-2.amazonaws.com/infracost/state-parser:0.2.2" &&
       !contains(keys(aws_lambda_function.state_file_parser.environment[0].variables), "PARSER_AUTO_UPDATE") &&
       !strcontains(data.aws_iam_policy_document.state_file_access.json, "lambda:UpdateFunctionCode")
     )

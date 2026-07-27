@@ -31,7 +31,7 @@ resource "aws_lambda_function" "state_file_parser" {
 
   lifecycle {
     precondition {
-      condition     = contains(local.supported_image_regions, data.aws_region.current.region)
+      condition     = contains(local.supported_image_regions, data.aws_region.current.name)
       error_message = "The Infracost state-parser image is not replicated to this AWS region. Deploy in one of: ${join(", ", sort(tolist(local.supported_image_regions)))}."
     }
   }
