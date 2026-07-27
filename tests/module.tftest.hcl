@@ -10,7 +10,7 @@ provider "aws" {
 
 override_data {
   target = data.aws_region.current
-  values = { region = "us-east-2" }
+  values = { id = "us-east-2" }
 }
 
 override_data {
