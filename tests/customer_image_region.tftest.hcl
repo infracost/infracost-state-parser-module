@@ -33,7 +33,7 @@ run "customer_image_bypasses_only_managed_region_limit" {
   command = plan
 
   variables {
-    parser_image_uri = "123456789012.dkr.ecr.eu-south-2.amazonaws.com/state-parser:v0.2.3"
+    parser_image_uri = "123456789012.dkr.ecr.eu-south-2.amazonaws.com/state-parser:v0.2.4"
   }
 
   assert {

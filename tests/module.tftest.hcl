@@ -43,7 +43,7 @@ run "minimal_default_contract" {
 
   assert {
     condition = (
-      aws_lambda_function.state_file_parser.image_uri == "237144093413.dkr.ecr.us-east-2.amazonaws.com/infracost/state-parser:0.2.3" &&
+      aws_lambda_function.state_file_parser.image_uri == "237144093413.dkr.ecr.us-east-2.amazonaws.com/infracost/state-parser:0.2.4" &&
       !contains(keys(aws_lambda_function.state_file_parser.environment[0].variables), "PARSER_AUTO_UPDATE") &&
       !strcontains(data.aws_iam_policy_document.state_file_access.json, "lambda:UpdateFunctionCode")
     )
@@ -395,7 +395,7 @@ run "customer_image_tag_disables_managed_ecr_access" {
   command = plan
 
   variables {
-    parser_image_uri = "123456789012.dkr.ecr.us-east-2.amazonaws.com/state-parser:v0.2.3"
+    parser_image_uri = "123456789012.dkr.ecr.us-east-2.amazonaws.com/state-parser:v0.2.4"
   }
 
   assert {
