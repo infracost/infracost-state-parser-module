@@ -17,28 +17,33 @@ data "aws_iam_policy_document" "state_file_access" {
     resources = ["arn:aws:logs:*:*:*"]
   }
 
-  statement {
-    effect = "Allow"
-    actions = [
-      "ecr:GetDownloadUrlForLayer",
-      "ecr:GetAuthorizationToken",
-      "ecr:BatchCheckLayerAvailability",
-      "ecr:BatchGetImage"
-    ]
-    resources = [local.image_arn]
+  dynamic "statement" {
+    for_each = local.managed_image ? [1] : []
+    content {
+      effect = "Allow"
+      actions = [
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:BatchGetImage"
+      ]
+      resources = [local.image_arn]
+    }
   }
 
-  statement {
-    effect    = "Allow"
-    actions   = ["ecr:GetAuthorizationToken"]
-    resources = ["*"]
+  dynamic "statement" {
+    for_each = local.managed_image ? [1] : []
+    content {
+      effect    = "Allow"
+      actions   = ["ecr:GetAuthorizationToken"]
+      resources = ["*"]
+    }
   }
 
   statement {
     sid       = "WriteSanitizedReports"
     effect    = "Allow"
     actions   = ["s3:PutObject"]
-    resources = ["arn:aws:s3:::${var.state_bucket}/${var.organization_id}/aws_account_id=${data.aws_caller_identity.current.account_id}/terraform-state-resources.json"]
+    resources = ["arn:aws:s3:::${var.state_bucket}/${local.state_report_key}"]
   }
 
   dynamic "statement" {
@@ -161,6 +166,29 @@ resource "aws_iam_role" "state_file_parser" {
 resource "aws_iam_role_policy_attachment" "state_file_access_policy_attachement" {
   role       = aws_iam_role.state_file_parser.name
   policy_arn = aws_iam_policy.state_file_access.arn
+}
+
+resource "aws_iam_role_policy" "vpc_access" {
+  count = var.vpc_config == null ? 0 : 1
+
+  name = "infracost-state-parser-vpc-access"
+  role = aws_iam_role.state_file_parser.name
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid    = "ManageLambdaNetworkInterfaces"
+      Effect = "Allow"
+      Action = [
+        "ec2:CreateNetworkInterface",
+        "ec2:DescribeNetworkInterfaces",
+        "ec2:DescribeSubnets",
+        "ec2:DeleteNetworkInterface",
+        "ec2:AssignPrivateIpAddresses",
+        "ec2:UnassignPrivateIpAddresses",
+      ]
+      Resource = "*"
+    }]
+  })
 }
 
 output "iam_role_arn" {

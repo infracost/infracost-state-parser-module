@@ -43,11 +43,21 @@ run "minimal_default_contract" {
 
   assert {
     condition = (
-      aws_lambda_function.state_file_parser.image_uri == "237144093413.dkr.ecr.us-east-2.amazonaws.com/infracost/state-parser:0.2.2" &&
+      aws_lambda_function.state_file_parser.image_uri == "237144093413.dkr.ecr.us-east-2.amazonaws.com/infracost/state-parser:0.2.3" &&
       !contains(keys(aws_lambda_function.state_file_parser.environment[0].variables), "PARSER_AUTO_UPDATE") &&
       !strcontains(data.aws_iam_policy_document.state_file_access.json, "lambda:UpdateFunctionCode")
     )
     error_message = "The module must use its paired versioned parser release without self-update configuration or permissions."
+  }
+
+  assert {
+    condition = (
+      aws_lambda_function.state_file_parser.environment[0].variables.INFRACOST_STATE_BUCKET_REGION == "us-east-2" &&
+      aws_lambda_function.state_file_parser.environment[0].variables.INFRACOST_STATE_BUCKET_PREFIX == "" &&
+      length(aws_lambda_function.state_file_parser.vpc_config) == 0 &&
+      length(aws_iam_role_policy.vpc_access) == 0
+    )
+    error_message = "Default deployments must retain the managed destination and run without VPC attachment."
   }
 
   assert {
@@ -281,4 +291,149 @@ run "iam_interpolation_inputs_reject_wildcards" {
   }
 
   expect_failures = [var.organization_id, var.state_bucket]
+}
+
+run "customer_destination_is_exactly_scoped" {
+  command = plan
+
+  variables {
+    state_bucket        = "customer-reports"
+    state_bucket_region = "us-east-1"
+    state_bucket_prefix = "shared/reports"
+  }
+
+  assert {
+    condition = (
+      aws_lambda_function.state_file_parser.environment[0].variables.INFRACOST_STATE_BUCKET == "customer-reports" &&
+      aws_lambda_function.state_file_parser.environment[0].variables.INFRACOST_STATE_BUCKET_REGION == "us-east-1" &&
+      aws_lambda_function.state_file_parser.environment[0].variables.INFRACOST_STATE_BUCKET_PREFIX == "shared/reports"
+    )
+    error_message = "The parser must receive the configured customer destination."
+  }
+
+  assert {
+    condition = length([
+      for statement in jsondecode(data.aws_iam_policy_document.state_file_access.json).Statement : statement
+      if try(statement.Sid == "WriteSanitizedReports", false) &&
+      try(statement.Action == "s3:PutObject", false) &&
+      try(statement.Resource == "arn:aws:s3:::customer-reports/shared/reports/3f9fa4c5-e856-4312-8423-3c8380f3f05e/aws_account_id=123456789012/terraform-state-resources.json", false)
+    ]) == 1
+    error_message = "Customer destination IAM must allow only the exact prefixed report object."
+  }
+}
+
+run "invalid_destination_prefixes_are_rejected" {
+  command = plan
+
+  variables { state_bucket_prefix = "shared/*" }
+
+  expect_failures = [var.state_bucket_prefix]
+}
+
+run "vpc_configuration_adds_only_required_eni_access" {
+  command = plan
+
+  variables {
+    vpc_config = {
+      subnet_ids         = ["subnet-b", "subnet-a"]
+      security_group_ids = ["sg-b", "sg-a"]
+    }
+  }
+
+  assert {
+    condition = (
+      aws_lambda_function.state_file_parser.vpc_config[0].subnet_ids == toset(["subnet-a", "subnet-b"]) &&
+      aws_lambda_function.state_file_parser.vpc_config[0].security_group_ids == toset(["sg-a", "sg-b"])
+    )
+    error_message = "The Lambda must receive the supplied subnet and security-group IDs."
+  }
+
+  assert {
+    condition = (
+      length(aws_iam_role_policy.vpc_access) == 1 &&
+      toset(jsondecode(aws_iam_role_policy.vpc_access[0].policy).Statement[0].Action) == toset([
+        "ec2:CreateNetworkInterface",
+        "ec2:DescribeNetworkInterfaces",
+        "ec2:DescribeSubnets",
+        "ec2:DeleteNetworkInterface",
+        "ec2:AssignPrivateIpAddresses",
+        "ec2:UnassignPrivateIpAddresses",
+      ]) &&
+      jsondecode(aws_iam_role_policy.vpc_access[0].policy).Statement[0].Resource == "*"
+    )
+    error_message = "VPC mode must grant exactly the six documented Lambda ENI actions on all resources."
+  }
+}
+
+run "empty_vpc_subnets_are_rejected" {
+  command = plan
+
+  variables {
+    vpc_config = {
+      subnet_ids         = []
+      security_group_ids = ["sg-a"]
+    }
+  }
+
+  expect_failures = [var.vpc_config]
+}
+
+run "empty_vpc_security_groups_are_rejected" {
+  command = plan
+
+  variables {
+    vpc_config = {
+      subnet_ids         = ["subnet-a"]
+      security_group_ids = []
+    }
+  }
+
+  expect_failures = [var.vpc_config]
+}
+
+run "customer_image_tag_disables_managed_ecr_access" {
+  command = plan
+
+  variables {
+    parser_image_uri = "123456789012.dkr.ecr.us-east-2.amazonaws.com/state-parser:v0.2.3"
+  }
+
+  assert {
+    condition     = aws_lambda_function.state_file_parser.image_uri == var.parser_image_uri
+    error_message = "A customer image tag must be passed to Lambda unchanged."
+  }
+
+  assert {
+    condition     = !strcontains(data.aws_iam_policy_document.state_file_access.json, "ecr:")
+    error_message = "Customer image mode must not add managed-image ECR permissions to the execution role."
+  }
+}
+
+run "customer_image_digest_is_accepted_with_vpc" {
+  command = plan
+
+  variables {
+    parser_image_uri = "123456789012.dkr.ecr.us-east-2.amazonaws.com/state-parser@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    vpc_config = {
+      subnet_ids         = ["subnet-a"]
+      security_group_ids = ["sg-a"]
+    }
+  }
+
+  assert {
+    condition = (
+      aws_lambda_function.state_file_parser.image_uri == var.parser_image_uri &&
+      length(aws_lambda_function.state_file_parser.vpc_config) == 1 &&
+      length(aws_iam_role_policy.vpc_access) == 1
+    )
+    error_message = "Customer digest and VPC modes must compose without enabling managed-image access."
+  }
+}
+
+run "blank_customer_image_is_rejected" {
+  command = plan
+
+  variables { parser_image_uri = " " }
+
+  expect_failures = [var.parser_image_uri]
 }
