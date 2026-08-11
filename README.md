@@ -17,7 +17,7 @@ provider "aws" {
 }
 
 module "infracost_state_parser" {
-  source = "github.com/infracost/infracost-state-parser-module?ref=v0.2.3"
+  source = "github.com/infracost/infracost-state-parser-module?ref=v0.2.4"
 
   providers = {
     aws = aws
@@ -52,7 +52,7 @@ module "infracost_state_parser" {
   # }
 
   # Optional customer-managed parser image. Tags and digests are supported.
-  # parser_image_uri = "123456789012.dkr.ecr.us-west-2.amazonaws.com/infracost-state-parser:v0.2.3"
+  # parser_image_uri = "123456789012.dkr.ecr.us-west-2.amazonaws.com/infracost-state-parser:v0.2.4"
 }
 ```
 

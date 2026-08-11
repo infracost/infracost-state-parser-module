@@ -39,7 +39,7 @@ locals {
   function_name     = "infracost-state-file-parser"
   image_uri         = "237144093413.dkr.ecr.${data.aws_region.current.id}.amazonaws.com/infracost/state-parser"
   image_arn         = "arn:aws:ecr:${data.aws_region.current.id}:237144093413:repository/infracost/state-parser"
-  parser_version    = "0.2.3"
+  parser_version    = "0.2.4"
   managed_image_ref = "${local.image_uri}:${local.parser_version}"
   managed_image     = var.parser_image_uri == null
   image_ref         = local.managed_image ? local.managed_image_ref : var.parser_image_uri
