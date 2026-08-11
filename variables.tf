@@ -70,7 +70,7 @@ variable "log_level" {
 }
 
 variable "state_bucket" {
-  description = "Infracost-owned bucket that receives sanitized parser reports"
+  description = "S3 bucket that receives sanitized parser reports"
   type        = string
   default     = "infracost-incoming"
 
@@ -81,5 +81,67 @@ variable "state_bucket" {
       !can(regex("^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$", var.state_bucket))
     )
     error_message = "state_bucket must be one exact, valid S3 bucket name; paths and wildcards are not accepted."
+  }
+}
+
+variable "state_bucket_region" {
+  description = "AWS region of the S3 bucket that receives sanitized parser reports"
+  type        = string
+  default     = "us-east-2"
+
+  validation {
+    condition     = can(regex("^[a-z]{2}(-[a-z]+)+-[0-9]+$", var.state_bucket_region))
+    error_message = "state_bucket_region must be a valid AWS region name."
+  }
+}
+
+variable "state_bucket_prefix" {
+  description = "Optional S3 key prefix for sanitized parser reports"
+  type        = string
+  default     = ""
+
+  validation {
+    condition = (
+      var.state_bucket_prefix == "" ||
+      (
+        !startswith(var.state_bucket_prefix, "/") &&
+        !endswith(var.state_bucket_prefix, "/") &&
+        !strcontains(var.state_bucket_prefix, "//") &&
+        !strcontains(var.state_bucket_prefix, "\\") &&
+        !strcontains(var.state_bucket_prefix, "*") &&
+        !strcontains(var.state_bucket_prefix, "?") &&
+        !can(regex("[[:cntrl:]]", var.state_bucket_prefix)) &&
+        alltrue([for segment in split("/", var.state_bucket_prefix) : segment != "." && segment != ".."])
+      )
+    )
+    error_message = "state_bucket_prefix must be a clean S3 prefix without leading or trailing slashes, empty path segments, '.', '..', backslashes, or wildcard characters."
+  }
+}
+
+variable "vpc_config" {
+  description = "Optional VPC configuration in which to run the Lambda."
+  type = object({
+    subnet_ids         = set(string)
+    security_group_ids = set(string)
+  })
+  default = null
+
+  validation {
+    condition = var.vpc_config == null ? true : (
+      length(var.vpc_config.subnet_ids) > 0 &&
+      length(var.vpc_config.security_group_ids) > 0
+    )
+    error_message = "vpc_config must contain at least one subnet ID and one security group ID."
+  }
+}
+
+variable "parser_image_uri" {
+  description = "Optional customer-managed ECR image URI for the parser"
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.parser_image_uri == null || try(trimspace(var.parser_image_uri) != "", false)
+    error_message = "parser_image_uri must not be blank."
   }
 }

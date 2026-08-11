@@ -36,11 +36,16 @@ locals {
   )
   expected_interval_seconds = (local.period_days * 86400) + (local.period_hours * 3600) + (local.period_minutes * 60)
 
-  function_name  = "infracost-state-file-parser"
-  image_uri      = "237144093413.dkr.ecr.${data.aws_region.current.id}.amazonaws.com/infracost/state-parser"
-  image_arn      = "arn:aws:ecr:${data.aws_region.current.id}:237144093413:repository/infracost/state-parser"
-  parser_version = "0.2.2"
-  image_ref      = "${local.image_uri}:${local.parser_version}"
+  function_name     = "infracost-state-file-parser"
+  image_uri         = "237144093413.dkr.ecr.${data.aws_region.current.id}.amazonaws.com/infracost/state-parser"
+  image_arn         = "arn:aws:ecr:${data.aws_region.current.id}:237144093413:repository/infracost/state-parser"
+  parser_version    = "0.2.3"
+  managed_image_ref = "${local.image_uri}:${local.parser_version}"
+  managed_image     = var.parser_image_uri == null
+  image_ref         = local.managed_image ? local.managed_image_ref : var.parser_image_uri
+
+  state_bucket_key_prefix = var.state_bucket_prefix == "" ? "" : "${var.state_bucket_prefix}/"
+  state_report_key        = "${local.state_bucket_key_prefix}${var.organization_id}/aws_account_id=${data.aws_caller_identity.current.account_id}/terraform-state-resources.json"
 
   supported_image_regions = toset([
     "eu-central-1",

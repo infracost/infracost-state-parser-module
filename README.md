@@ -17,7 +17,7 @@ provider "aws" {
 }
 
 module "infracost_state_parser" {
-  source = "github.com/infracost/infracost-state-parser-module?ref=v0.2.2"
+  source = "github.com/infracost/infracost-state-parser-module?ref=v0.2.3"
 
   providers = {
     aws = aws
@@ -38,6 +38,21 @@ module "infracost_state_parser" {
   # state_kms_key_arns = ["arn:aws:kms:us-west-2:123456789012:key/your-key-id"] # Optional KMS keys used to encrypt the state files.
   # schedule_period = "PT1H" # Optional ISO 8601 period between parser runs. Defaults to one hour.
   # log_level = "INFO" # Optional log level for the Lambda function. Valid values are `DEBUG`, `INFO` (default), `WARN`, or `ERROR`.
+
+  # Optional destination overrides. The bucket can be owned by you or by
+  # another AWS account that permits this module's Lambda role to write.
+  # state_bucket        = "your-report-bucket"
+  # state_bucket_region = "us-west-2"
+  # state_bucket_prefix = "infracost-reports"
+
+  # Optional VPC configuration in which to run the Lambda.
+  # vpc_config = {
+  #   subnet_ids         = ["subnet-0123456789abcdef0"]
+  #   security_group_ids = ["sg-0123456789abcdef0"]
+  # }
+
+  # Optional customer-managed parser image. Tags and digests are supported.
+  # parser_image_uri = "123456789012.dkr.ecr.us-west-2.amazonaws.com/infracost-state-parser:v0.2.3"
 }
 ```
 
@@ -62,7 +77,7 @@ Rafa
 
 1. This sets up a Lambda function that runs periodically using a CloudWatch Event Rule.
 2. It scans your configured state files (or discovered state buckets) and extracts the attributes listed below.
-3. It then sends a subset of the below attributes to an S3 bucket in Infracost's account:
+3. It then sends a subset of the below attributes to the configured S3 destination bucket:
 
 For all resources:
  * `id`
@@ -155,6 +170,88 @@ For `aws_lambda_function`:
  * `function_name`
  * `architectures`
  * `runtime`
+
+## Report destination
+
+By default, reports are written to the Infracost-managed destination. You can
+instead set `state_bucket`, `state_bucket_region`, and optionally
+`state_bucket_prefix` to deliver reports to a bucket under your control.
+
+The Lambda role can write only this object in each deployment account:
+
+```text
+<prefix>/<organization_id>/aws_account_id=<account_id>/terraform-state-resources.json
+```
+
+When `state_bucket_prefix` is empty, the key starts with `organization_id`.
+The destination bucket policy is managed outside this module and must permit
+the role exposed by the `iam_role_arn` output to call `s3:PutObject` on that
+object.
+
+For deployments across accounts in one AWS Organization, a customer-managed
+bucket policy can authorize the dedicated parser role while retaining an exact
+account-specific object path. Replace the placeholders and omit
+`DESTINATION_PREFIX/` when no prefix is configured:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Sid": "AllowOrganizationStateParserReports",
+    "Effect": "Allow",
+    "Principal": "*",
+    "Action": "s3:PutObject",
+    "Resource": "arn:aws:s3:::DESTINATION_BUCKET/DESTINATION_PREFIX/INFRACOST_ORGANIZATION_ID/aws_account_id=${aws:PrincipalAccount}/terraform-state-resources.json",
+    "Condition": {
+      "StringEquals": {
+        "aws:PrincipalOrgID": "o-EXAMPLEORGID"
+      },
+      "ArnLike": {
+        "aws:PrincipalArn": "arn:aws:iam::*:role/infracost-state-parser-role"
+      }
+    }
+  }]
+}
+```
+
+The AWS Organization ID in `aws:PrincipalOrgID` is distinct from the Infracost
+organization ID used in the report key.
+
+## VPC configuration
+
+Set `vpc_config` to attach the Lambda to existing subnets and security groups.
+The subnets and security groups must belong to the same VPC and AWS region.
+
+This module does not create or validate network routes, internet egress, VPC
+endpoints, endpoint policies, or security-group rules. The supplied network must
+provide connectivity to every S3 bucket used by the parser. VPC attachment and
+detachment can take several minutes while Lambda manages its network interfaces.
+
+The IAM principal running Terraform needs these permissions in addition to the
+permissions normally required to deploy the module:
+
+```text
+ec2:DescribeSecurityGroups
+ec2:DescribeSubnets
+ec2:DescribeVpcs
+ec2:GetSecurityGroupsForVpc
+```
+
+AWS documents the separate deployment and execution-role permission sets in
+[Giving Lambda functions access to resources in an Amazon VPC](https://docs.aws.amazon.com/lambda/latest/dg/configuration-vpc.html#configuration-vpc-permissions).
+
+## Customer-managed parser image
+
+Set `parser_image_uri` to deploy an image from a private ECR repository under
+your control. The image must be in the Lambda function's AWS region, must contain
+a Lambda-compatible Linux ARM64 image, and must not be a multi-architecture
+image index. You are responsible for the ECR repository policy, including any
+cross-account access required by Lambda.
+
+Tags and digests are both accepted. When using a tag, publish a new tag whenever
+the image changes. Overwriting an existing tag does not change Terraform's
+`image_uri` and therefore does not cause Lambda to update its code. Digest
+pinning is available but not required.
 
 ## Updates
 
